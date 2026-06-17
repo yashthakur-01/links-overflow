@@ -8,6 +8,8 @@
   [![React](https://img.shields.io/badge/React-19-blue?style=flat&logo=react)](https://react.dev/)
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+
+  <p>Live demo - <a href="https://links-overflow.vercel.app">Links Overflow</a></p>
 </div>
 
 ## 📖 Overview
