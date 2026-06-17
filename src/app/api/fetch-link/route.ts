@@ -467,7 +467,7 @@ function processSocialMedia(url: string, parsedUrl: URL) {
   const host = parsedUrl.hostname.replace("www.", "");
   const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
   
-  let category: "Instagram" | "Discord" | "WhatsApp" = "Instagram";
+  let category: "Instagram" | "Discord" | "WhatsApp" | "Twitter/X" = "Instagram";
   let platform = "Social Media";
   let subcategory = "Other";
   let identifier = url;
@@ -476,10 +476,22 @@ function processSocialMedia(url: string, parsedUrl: URL) {
   if (host.includes("instagram.com")) {
     category = "Instagram";
     platform = "Instagram";
-    if (pathParts[0] === "p" || pathParts[0] === "reel") {
-      subcategory = pathParts[0] === "p" ? "Post" : "Reel";
-      identifier = `Post/Reel ${pathParts[1] || ""}`;
+    if (pathParts.includes("p")) {
+      subcategory = "Post";
+      identifier = `Post ${pathParts[pathParts.indexOf("p") + 1] || ""}`;
       contentType = "Post";
+    } else if (pathParts.includes("reels") || pathParts.includes("reel")) {
+      const isProfileReel = pathParts[0] !== "reels" && pathParts[0] !== "reel";
+      if (isProfileReel) {
+        subcategory = "Profile";
+        identifier = `@${pathParts[0]}`;
+        contentType = "Profile";
+      } else {
+        subcategory = "Reel";
+        const reelIdIndex = pathParts.includes("reels") ? pathParts.indexOf("reels") + 1 : pathParts.indexOf("reel") + 1;
+        identifier = `Reel ${pathParts[reelIdIndex] || ""}`;
+        contentType = "Reel";
+      }
     } else {
       subcategory = "Profile";
       identifier = pathParts[0] ? `@${pathParts[0]}` : "Instagram";
@@ -497,6 +509,18 @@ function processSocialMedia(url: string, parsedUrl: URL) {
     subcategory = "Chat Link";
     identifier = pathParts[pathParts.length - 1] || "WhatsApp Link";
     contentType = "Chat Link";
+  } else if (host.includes("twitter.com") || host.includes("x.com")) {
+    category = "Twitter/X";
+    platform = "Twitter/X";
+    if (pathParts.includes("status")) {
+      subcategory = "Post";
+      identifier = `Post by @${pathParts[0]}`;
+      contentType = "Post";
+    } else {
+      subcategory = "Profile";
+      identifier = pathParts[0] ? `@${pathParts[0]}` : "Profile";
+      contentType = "Profile";
+    }
   }
 
   return {
@@ -572,7 +596,9 @@ export async function POST(req: NextRequest) {
       host.includes("discord.gg") ||
       host.includes("discord.com") ||
       host.includes("whatsapp.com") ||
-      host.includes("wa.me")
+      host.includes("wa.me") ||
+      host.includes("twitter.com") ||
+      host.includes("x.com")
     ) {
       console.log(`[Pipeline] Rule-based routing: Social Media`);
       result = processSocialMedia(url, parsedUrl);

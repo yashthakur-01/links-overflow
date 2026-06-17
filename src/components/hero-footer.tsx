@@ -31,16 +31,12 @@ export default function HeroFooter() {
           href="https://digitalheroesco.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 hover:shadow-[0_0_24px_rgba(124,92,252,0.3)] transition-all duration-300 hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-semibold hover:from-green-500 hover:to-emerald-500 hover:shadow-[0_0_24px_rgba(34,197,94,0.3)] transition-all duration-300 hover:-translate-y-0.5"
         >
           <Heart size={15} fill="currentColor" />
           Built for Digital Heroes
           <ExternalLink size={13} />
         </a>
-
-        <p className="text-[11px] text-gray-700 mt-2">
-          Smart Link Organizer — Interview Trial Project
-        </p>
       </div>
     </footer>
   );

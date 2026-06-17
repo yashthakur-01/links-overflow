@@ -23,6 +23,7 @@ function getStorageKey(token: string) {
 export function useAuthSession() {
   const [token, setToken] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
+  const [customSections, setCustomSections] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
 
   // Initialize token on mount
@@ -43,15 +44,27 @@ export function useAuthSession() {
         setLinks([]);
       }
     }
+    
+    // Load persisted sections
+    const rawSections = localStorage.getItem(`${getStorageKey(stored)}_sections`);
+    if (rawSections) {
+      try {
+        setCustomSections(JSON.parse(rawSections));
+      } catch {
+        setCustomSections([]);
+      }
+    }
+
     setIsReady(true);
   }, []);
 
-  // Persist whenever links change (after init)
+  // Persist whenever links or sections change (after init)
   useEffect(() => {
     if (token && isReady) {
       localStorage.setItem(getStorageKey(token), JSON.stringify(links));
+      localStorage.setItem(`${getStorageKey(token)}_sections`, JSON.stringify(customSections));
     }
-  }, [links, token, isReady]);
+  }, [links, customSections, token, isReady]);
 
   const addLink = useCallback((item: LinkItem) => {
     setLinks((prev) => [item, ...prev]);
@@ -71,5 +84,35 @@ export function useAuthSession() {
     setLinks([]);
   }, []);
 
-  return { token, links, isReady, addLink, removeLink, updateLink, clearLinks };
+  const addCustomSection = useCallback((section: string) => {
+    setCustomSections((prev) => {
+      if (prev.includes(section)) return prev;
+      return [...prev, section];
+    });
+  }, []);
+
+  const removeCustomSection = useCallback((section: string) => {
+    setCustomSections((prev) => prev.filter((s) => s !== section));
+    setLinks((prev) =>
+      prev.map((l) => {
+        if (l.category === section && l.originalCategory) {
+          return { ...l, category: l.originalCategory, originalCategory: undefined };
+        }
+        return l;
+      })
+    );
+  }, []);
+
+  return {
+    token,
+    links,
+    customSections,
+    isReady,
+    addLink,
+    removeLink,
+    updateLink,
+    clearLinks,
+    addCustomSection,
+    removeCustomSection,
+  };
 }

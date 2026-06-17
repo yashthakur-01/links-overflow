@@ -1,15 +1,5 @@
-export type CategoryName =
-  | "YouTube"
-  | "LinkedIn"
-  | "GitHub"
-  | "Coding Platforms"
-  | "Design"
-  | "Documents"
-  | "Blogs, Articles & Others"
-  | "Instagram"
-  | "Discord"
-  | "WhatsApp"
-  | "No Context Links";
+// Represents predefined categories and user-defined custom sections
+export type CategoryName = string;
 
 export interface YouTubeMeta {
   title: string;
@@ -78,6 +68,9 @@ export interface LinkItem {
   meta: LinkMeta;
   favicon: string;
   createdAt: string;
+  customTitle?: string;
+  customDescription?: string;
+  originalCategory?: string;
 }
 
 export interface FetchLinkResponse {

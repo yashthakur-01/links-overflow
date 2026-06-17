@@ -4,23 +4,26 @@ import React, { createContext, useContext, useState, type ReactNode } from "reac
 import type { CategoryName } from "@/lib/types";
 
 interface AppState {
-  selectedCategory: CategoryName | "All";
-  setSelectedCategory: (c: CategoryName | "All") => void;
+  selectedCategory: string | "All";
+  setSelectedCategory: (c: string | "All") => void;
   selectedSubcategory: string | null;
   setSelectedSubcategory: (s: string | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   toast: { message: string; type: "success" | "error" } | null;
   showToast: (message: string, type: "success" | "error") => void;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (v: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryName | "All">("All");
+  const [selectedCategory, setSelectedCategory] = useState<string | "All">("All");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -41,6 +44,8 @@ export function Providers({ children }: { children: ReactNode }) {
         setSearchQuery,
         toast,
         showToast,
+        isSidebarCollapsed,
+        setIsSidebarCollapsed,
       }}
     >
       {children}

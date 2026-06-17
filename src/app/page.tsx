@@ -19,13 +19,14 @@ import HeroFooter from "@/components/hero-footer";
 import type { LinkItem, FetchLinkResponse } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { links, isReady, addLink, removeLink, updateLink, clearLinks } = useAuthSession();
+  const { links, customSections, isReady, addLink, removeLink, updateLink, clearLinks, addCustomSection, removeCustomSection } = useAuthSession();
   const {
     selectedCategory,
     selectedSubcategory,
     searchQuery,
     toast,
     showToast,
+    isSidebarCollapsed,
   } = useAppState();
 
   const [urlInput, setUrlInput] = useState("");
@@ -137,15 +138,21 @@ export default function DashboardPage() {
 
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0d0d14] border-r border-[#1e1e2e] transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-0 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-[#0d0d14] border-r border-[#1e1e2e] transform transition-all duration-300 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${isSidebarCollapsed ? "w-20" : "w-72"}`}
       >
-        <Sidebar links={links} onClearAll={clearLinks} />
+        <Sidebar 
+          links={links} 
+          onClearAll={clearLinks} 
+          customSections={customSections} 
+          onAddCustomSection={addCustomSection}
+          onRemoveCustomSection={removeCustomSection} 
+        />
       </div>
 
       {/* ── Main content ────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-6">
+      <main className="flex-1 flex flex-col min-w-0 px-4 sm:px-6 lg:px-10 py-6 min-h-screen">
         {/* Mobile header */}
         <div className="flex items-center gap-3 mb-6 lg:hidden">
           <button
@@ -154,51 +161,53 @@ export default function DashboardPage() {
           >
             <Menu size={20} />
           </button>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-400 to-indigo-300 bg-clip-text text-transparent">
-            Smart Link Organizer
+          <h1 className="text-lg font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 bg-clip-text text-transparent">
+            Links Overflow
           </h1>
         </div>
 
         {/* ── URL Input Form ────────────────────────────────── */}
-        <div className="max-w-3xl mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={18} className="text-violet-400" />
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-              Add a Link
-            </h2>
-          </div>
-          <form onSubmit={handleSubmit} className="flex gap-3">
-            <div className="relative flex-1">
-              <Link2
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"
-              />
-              <input
-                id="url-input"
-                type="text"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="Paste any URL — YouTube, GitHub, LeetCode, Figma…"
-                disabled={isLoading}
-                className="w-full pl-11 pr-4 py-3.5 bg-[#12121a] border border-[#2a2a3a] rounded-2xl text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all disabled:opacity-50"
-              />
+        <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 border-b border-white/5 mb-8">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={18} className="text-pink-500" />
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                Add a Link
+              </h2>
             </div>
-            <button
-              id="organize-btn"
-              type="submit"
-              disabled={isLoading || !urlInput.trim()}
-              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 hover:shadow-[0_0_24px_rgba(124,92,252,0.25)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all duration-300 cursor-pointer"
-            >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <ChevronRight size={18} />
-              )}
-              <span className="hidden sm:inline">
-                {isLoading ? "Processing…" : "Organize"}
-              </span>
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="flex gap-3">
+              <div className="relative flex-1">
+                <Link2
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"
+                />
+                <input
+                  id="url-input"
+                  type="text"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="Paste any URL — YouTube, GitHub, LeetCode, Figma…"
+                  disabled={isLoading}
+                  className="w-full pl-11 pr-4 py-3.5 bg-[#12121a] border border-[#2a2a3a] rounded-2xl text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:opacity-50"
+                />
+              </div>
+              <button
+                id="organize-btn"
+                type="submit"
+                disabled={isLoading || !urlInput.trim()}
+                className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white text-sm font-semibold hover:opacity-90 hover:shadow-[0_0_24px_rgba(236,72,153,0.4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all duration-300 cursor-pointer"
+              >
+                {isLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
+                <span className="hidden sm:inline">
+                  {isLoading ? "Processing…" : "Organize"}
+                </span>
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* ── Active filter breadcrumb ──────────────────────── */}
@@ -206,7 +215,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 mb-5 flex-wrap">
             <span className="text-xs text-gray-600">Showing:</span>
             {selectedCategory !== "All" && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
+               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
                 {selectedCategory}
                 {selectedSubcategory && ` → ${selectedSubcategory}`}
               </span>
@@ -224,7 +233,7 @@ export default function DashboardPage() {
 
         {/* ── Link Grid ─────────────────────────────────────── */}
         {filteredLinks.length > 0 ? (
-          <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${isSidebarCollapsed ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
             {filteredLinks.map((item, i) => (
               <LinkCard
                 key={item.id}
@@ -232,11 +241,12 @@ export default function DashboardPage() {
                 index={i}
                 onRemove={removeLink}
                 onUpdate={updateLink}
+                customSections={customSections}
               />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#12121a] border border-[#2a2a3a] flex items-center justify-center mb-4">
               <Link2 size={28} className="text-gray-700" />
             </div>
@@ -251,8 +261,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Footer ────────────────────────────────────────── */}
-        <HeroFooter />
+        <div className="mt-auto pt-12">
+          {/* ── Footer ────────────────────────────────────────── */}
+          <HeroFooter />
+        </div>
       </main>
 
       {/* ── Toast Notifications ─────────────────────────────── */}

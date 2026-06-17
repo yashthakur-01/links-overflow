@@ -13,7 +13,11 @@ import {
   MessageCircle,
   Camera,
   MessageSquare,
+  MoreVertical,
+  FolderInput,
+  FolderMinus,
 } from "lucide-react";
+import { useAppState } from "@/app/providers";
 import type {
   LinkItem,
   YouTubeMeta,
@@ -32,6 +36,7 @@ interface LinkCardProps {
   index: number;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<LinkItem>) => void;
+  customSections: string[];
 }
 
 const CATEGORY_BADGES: Record<string, { bg: string; text: string; border: string }> = {
@@ -45,7 +50,23 @@ const CATEGORY_BADGES: Record<string, { bg: string; text: string; border: string
   "Instagram":        { bg: "bg-pink-500/15",    text: "text-pink-400",    border: "border-pink-500/30" },
   "Discord":          { bg: "bg-indigo-500/15",  text: "text-indigo-400",  border: "border-indigo-500/30" },
   "WhatsApp":         { bg: "bg-green-500/15",   text: "text-green-400",   border: "border-green-500/30" },
-  "No Context Links": { bg: "bg-gray-500/15",    text: "text-gray-400",    border: "border-gray-500/30" },
+  "Twitter/X":        { bg: "bg-gray-500/15",    text: "text-gray-300",    border: "border-gray-500/30" },
+  "No Context Links": { bg: "bg-cyan-500/15",    text: "text-cyan-400",    border: "border-cyan-500/30" },
+};
+
+const CATEGORY_HOVERS: Record<string, string> = {
+  YouTube:            "hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)]",
+  LinkedIn:           "hover:border-blue-600 hover:shadow-[0_0_20px_rgba(37,99,235,0.6)]",
+  GitHub:             "hover:border-gray-100 hover:shadow-[0_0_20px_rgba(255,255,255,0.6)]",
+  "Coding Platforms": "hover:border-yellow-400 hover:shadow-[0_0_20px_rgba(250,204,21,0.6)]",
+  Design:             "hover:border-purple-400 hover:shadow-[0_0_20px_rgba(192,132,252,0.6)]",
+  Documents:          "hover:border-sky-400 hover:shadow-[0_0_20px_rgba(56,189,248,0.6)]",
+  "Blogs, Articles & Others": "hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.6)]",
+  "Instagram":        "hover:border-pink-500 hover:shadow-[0_0_20px_rgba(236,72,153,0.6)]",
+  "Discord":          "hover:border-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.6)]",
+  "WhatsApp":         "hover:border-green-500 hover:shadow-[0_0_20px_rgba(34,197,94,0.6)]",
+  "Twitter/X":        "hover:border-gray-400 hover:shadow-[0_0_20px_rgba(156,163,175,0.6)]",
+  "No Context Links": "hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.6)]",
 };
 
 const CODING_PLATFORM_COLORS: Record<string, { bg: string; text: string }> = {
@@ -54,16 +75,36 @@ const CODING_PLATFORM_COLORS: Record<string, { bg: string; text: string }> = {
   CodeChef:   { bg: "bg-yellow-800/30", text: "text-yellow-200" },
 };
 
-export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardProps) {
+export default function LinkCard({ item, index, onRemove, onUpdate, customSections }: LinkCardProps) {
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const badge = CATEGORY_BADGES[item.category] || CATEGORY_BADGES["No Context Links"];
+  const hoverClass = CATEGORY_HOVERS[item.category] || CATEGORY_HOVERS["No Context Links"];
 
-  // Inline editing state for No Context Links
-  const isNoContext = item.category === "No Context Links";
+  const { showToast } = useAppState();
+
+  // Universal inline editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState((item.meta as OtherMeta).title || "");
-  const [editContext, setEditContext] = useState((item.meta as OtherMeta).context || "");
+  
+  // Menu state
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showMoveOptions, setShowMoveOptions] = useState(false);
+  
+  // Extract a default title for the edit field
+  const getDefaultTitle = () => {
+    if (item.customTitle) return item.customTitle;
+    const m = item.meta as any;
+    return m.title || m.entityName || m.identifier || m.fileName || m.repoName || "Link";
+  };
+  
+  const getDefaultContext = () => {
+    if (item.customDescription) return item.customDescription;
+    const m = item.meta as any;
+    return m.context || m.description || "";
+  };
+
+  const [editTitle, setEditTitle] = useState(getDefaultTitle());
+  const [editContext, setEditContext] = useState(getDefaultContext());
 
   const handleCopy = () => {
     navigator.clipboard.writeText(item.url);
@@ -73,16 +114,106 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
 
   const handleSaveEdit = () => {
     onUpdate(item.id, {
-      meta: {
-        ...item.meta,
-        title: editTitle.trim() || "No Context",
-        context: editContext.trim(),
-      } as OtherMeta,
+      customTitle: editTitle.trim(),
+      customDescription: editContext.trim(),
     });
     setIsEditing(false);
   };
 
+  const handleMoveClick = () => {
+    if (customSections.length === 0) {
+      showToast("No user made sections available. Create one in the sidebar first.", "error");
+      setIsMenuOpen(false);
+    } else {
+      setShowMoveOptions(!showMoveOptions);
+    }
+  };
+
+  const handleMoveToSection = (section: string) => {
+    onUpdate(item.id, { 
+      category: section,
+      originalCategory: item.originalCategory || item.category 
+    });
+    setIsMenuOpen(false);
+    setShowMoveOptions(false);
+    showToast(`Moved to ${section}`, "success");
+  };
+
+  const handleRemoveFromSection = () => {
+    if (item.originalCategory) {
+      onUpdate(item.id, {
+        category: item.originalCategory,
+        originalCategory: undefined
+      });
+      setIsMenuOpen(false);
+      showToast("Removed from section", "success");
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div
+        className={`animate-fade-in-up group relative bg-[#12121a]/70 backdrop-blur-2xl border border-[#2a2a3a] rounded-2xl p-4 transition-all duration-300 ${hoverClass}`}
+        style={{ animationDelay: `${index * 50}ms` }}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-1 block">Custom Title</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Enter title"
+              className="w-full bg-[#1a1a26] border border-[#2a2a3a] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-pink-500/60"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-1 block">Custom Description</label>
+            <textarea
+              value={editContext}
+              onChange={(e) => setEditContext(e.target.value)}
+              placeholder="Enter description"
+              rows={3}
+              className="w-full bg-[#1a1a26] border border-[#2a2a3a] rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-pink-500/60 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#1e1e2e]">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-4 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-[#2a2a3a] transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              className="px-4 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md hover:opacity-90 transition-all cursor-pointer"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const renderContent = () => {
+    // If user has set a custom title/description, we render a generic card using those values
+    if (item.customTitle || item.customDescription) {
+      return (
+        <div className="group/edit">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-sm text-white line-clamp-2">
+              {item.customTitle}
+            </h3>
+          </div>
+          {item.customDescription && (
+            <p className="text-xs text-gray-100 mt-1.5 line-clamp-3 leading-relaxed">
+              {item.customDescription}
+            </p>
+          )}
+        </div>
+      );
+    }
     switch (item.category) {
       case "YouTube": {
         const meta = item.meta as YouTubeMeta;
@@ -118,10 +249,10 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
                 </>
               )}
             </div>
-            <h3 className="font-semibold text-sm text-gray-100 line-clamp-2 leading-snug">
+            <h3 className="font-semibold text-sm text-white line-clamp-2 leading-snug">
               {meta.title}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">{meta.channel}</p>
+            <p className="text-xs text-gray-200 mt-1">{meta.channel}</p>
           </div>
         );
       }
@@ -131,14 +262,14 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
         return (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <FolderGit2 size={20} className="text-gray-300 shrink-0" />
-              <h3 className="font-semibold text-sm text-gray-100 truncate">
+              <FolderGit2 size={20} className="text-gray-100 shrink-0" />
+              <h3 className="font-semibold text-sm text-white truncate">
                 {meta.repoName
                   ? `${meta.username}/${meta.repoName}`
                   : meta.username}
               </h3>
             </div>
-            <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">
+            <p className="text-xs text-gray-100 line-clamp-3 leading-relaxed">
               {meta.description}
             </p>
           </div>
@@ -151,18 +282,18 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Briefcase size={20} className="text-blue-400 shrink-0" />
-              <h3 className="font-semibold text-sm text-gray-100 truncate">
+              <h3 className="font-semibold text-sm text-white truncate">
                 {meta.identifier}
               </h3>
             </div>
-            <p className="text-xs text-gray-400">{meta.contentType}</p>
+            <p className="text-xs text-gray-100">{meta.contentType}</p>
           </div>
         );
       }
 
       case "Coding Platforms": {
         const meta = item.meta as CodingPlatformMeta;
-        const platColor = CODING_PLATFORM_COLORS[meta.platform] || { bg: "bg-gray-500/20", text: "text-gray-300" };
+        const platColor = CODING_PLATFORM_COLORS[meta.platform] || { bg: "bg-gray-500/20", text: "text-gray-100" };
         return (
           <div>
             <span
@@ -171,10 +302,10 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
               <span className="w-2 h-2 rounded-full bg-current animate-pulse-dot" />
               {meta.platform}
             </span>
-            <h3 className="font-semibold text-sm text-gray-100 line-clamp-2 leading-snug">
+            <h3 className="font-semibold text-sm text-white line-clamp-2 leading-snug">
               {meta.entityName}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">{meta.type}</p>
+            <p className="text-xs text-gray-200 mt-1">{meta.type}</p>
           </div>
         );
       }
@@ -192,7 +323,7 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
             >
               {meta.platform}
             </span>
-            <h3 className="font-semibold text-sm text-gray-100 line-clamp-2">
+            <h3 className="font-semibold text-sm text-white line-clamp-2">
               {meta.fileName}
             </h3>
           </div>
@@ -208,7 +339,7 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
                 {meta.fileExtension}
               </span>
             </div>
-            <h3 className="font-semibold text-sm text-gray-100 line-clamp-2">
+            <h3 className="font-semibold text-sm text-white line-clamp-2">
               {meta.title}
             </h3>
           </div>
@@ -219,11 +350,11 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
         const meta = item.meta as BlogMeta;
         return (
           <div>
-            <h3 className="font-semibold text-sm text-gray-100 line-clamp-2 leading-snug">
+            <h3 className="font-semibold text-sm text-white line-clamp-2 leading-snug">
               {meta.title}
             </h3>
             {meta.description && (
-              <p className="text-xs text-gray-400 mt-1.5 line-clamp-3 leading-relaxed">
+              <p className="text-xs text-gray-100 mt-1.5 line-clamp-3 leading-relaxed">
                 {meta.description}
               </p>
             )}
@@ -237,11 +368,11 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Camera size={20} className="text-pink-400 shrink-0" />
-              <h3 className="font-semibold text-sm text-gray-100 truncate">
+              <h3 className="font-semibold text-sm text-white truncate">
                 {meta.identifier}
               </h3>
             </div>
-            <p className="text-xs text-gray-400">{meta.contentType}</p>
+            <p className="text-xs text-gray-100">{meta.contentType}</p>
           </div>
         );
       }
@@ -252,11 +383,11 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
           <div>
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare size={20} className="text-indigo-400 shrink-0" />
-              <h3 className="font-semibold text-sm text-gray-100 truncate">
+              <h3 className="font-semibold text-sm text-white truncate">
                 {meta.identifier}
               </h3>
             </div>
-            <p className="text-xs text-gray-400">{meta.contentType}</p>
+            <p className="text-xs text-gray-100">{meta.contentType}</p>
           </div>
         );
       }
@@ -267,73 +398,41 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
           <div>
             <div className="flex items-center gap-2 mb-2">
               <MessageCircle size={20} className="text-green-400 shrink-0" />
-              <h3 className="font-semibold text-sm text-gray-100 truncate">
+              <h3 className="font-semibold text-sm text-white truncate">
                 {meta.identifier}
               </h3>
             </div>
-            <p className="text-xs text-gray-400">{meta.contentType}</p>
+            <p className="text-xs text-gray-100">{meta.contentType}</p>
+          </div>
+        );
+      }
+
+      case "Twitter/X": {
+        const meta = item.meta as SocialMediaMeta;
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare size={20} className="text-gray-300 shrink-0" />
+              <h3 className="font-semibold text-sm text-white truncate">
+                {meta.identifier}
+              </h3>
+            </div>
+            <p className="text-xs text-gray-100">{meta.contentType}</p>
           </div>
         );
       }
 
       default: {
         const meta = item.meta as OtherMeta;
-        if (isEditing) {
-          return (
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Title (e.g., My Link)"
-                className="w-full bg-[#1a1a26] border border-[#2a2a3a] rounded-lg px-3 py-1.5 text-sm text-gray-100 outline-none focus:border-violet-500/60"
-              />
-              <textarea
-                value={editContext}
-                onChange={(e) => setEditContext(e.target.value)}
-                placeholder="Description (optional)"
-                rows={2}
-                className="w-full bg-[#1a1a26] border border-[#2a2a3a] rounded-lg px-3 py-1.5 text-xs text-gray-100 outline-none focus:border-violet-500/60 resize-none"
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1 rounded-md text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-3 py-1 rounded-md text-xs font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors cursor-pointer"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          );
-        }
-
         return (
           <div className="group/edit">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-sm text-gray-100 line-clamp-2">
+              <h3 className="font-semibold text-sm text-white line-clamp-2">
                 {meta.title}
               </h3>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                  setEditTitle(meta.title === "No Context" ? "" : meta.title);
-                  setEditContext(meta.context);
-                }}
-                className="opacity-0 group-hover/edit:opacity-100 p-1 text-gray-500 hover:text-gray-200 transition-all cursor-pointer"
-                title="Edit Title & Description"
-              >
-                <Edit2 size={12} />
-              </button>
             </div>
             {meta.context && (
-              <p className="text-xs text-gray-400 mt-1.5 line-clamp-2">
+              <p className="text-xs text-gray-100 mt-1.5 line-clamp-2">
                 {meta.context}
               </p>
             )}
@@ -345,7 +444,7 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
 
   return (
     <div
-      className="animate-fade-in-up group relative bg-[#12121a]/70 backdrop-blur-2xl border border-[#2a2a3a] rounded-2xl p-4 transition-all duration-300 hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(124,92,252,0.12)] hover:-translate-y-0.5"
+      className={`animate-fade-in-up group relative bg-[#12121a]/70 backdrop-blur-2xl border border-[#2a2a3a] rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 ${hoverClass} ${isMenuOpen ? "z-50" : ""}`}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {/* Top bar */}
@@ -377,22 +476,92 @@ export default function LinkCard({ item, index, onRemove, onUpdate }: LinkCardPr
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           </button>
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg hover:bg-[#2a2a3a] text-gray-500 hover:text-gray-200 transition-colors"
-            title="Open link"
+          
+          {/* Three Dot Menu */}
+          <div 
+            className="relative"
+            onMouseLeave={() => {
+              if (isMenuOpen) {
+                setIsMenuOpen(false);
+                setShowMoveOptions(false);
+              }
+            }}
           >
-            <ExternalLink size={14} />
-          </a>
-          <button
-            onClick={() => onRemove(item.id)}
-            className="p-1.5 rounded-lg hover:bg-red-500/15 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
-            title="Remove"
-          >
-            <Trash2 size={14} />
-          </button>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-1.5 rounded-lg hover:bg-[#2a2a3a] text-gray-500 hover:text-gray-200 transition-colors cursor-pointer"
+            >
+              <MoreVertical size={14} />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full pt-1 w-48 z-50">
+                <div className="bg-[#1a1a26] border border-[#2a2a3a] rounded-xl shadow-xl overflow-hidden text-sm animate-fade-in-up">
+                {!showMoveOptions ? (
+                  <div className="flex flex-col py-1">
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsEditing(true);
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-left text-gray-300 hover:bg-[#2a2a3a] transition-colors cursor-pointer"
+                    >
+                      <Edit2 size={14} /> Update Metadata
+                    </button>
+                    <button
+                      onClick={handleMoveClick}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-left text-gray-300 hover:bg-[#2a2a3a] transition-colors cursor-pointer"
+                    >
+                      <FolderInput size={14} /> Move Link
+                    </button>
+                    {item.originalCategory && (
+                      <button
+                        onClick={handleRemoveFromSection}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-left text-gray-300 hover:bg-[#2a2a3a] transition-colors cursor-pointer"
+                      >
+                        <FolderMinus size={14} /> Remove from Section
+                      </button>
+                    )}
+                    <div className="h-px bg-[#2a2a3a] my-1" />
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onRemove(item.id);
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col py-1">
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-[#2a2a3a]">
+                      Move to section
+                    </div>
+                    <div className="max-h-48 overflow-y-auto no-scrollbar">
+                      {customSections.map(section => (
+                        <button
+                          key={section}
+                          onClick={() => handleMoveToSection(section)}
+                          className="flex items-center w-full px-3 py-2 text-left text-gray-300 hover:bg-[#2a2a3a] transition-colors cursor-pointer truncate"
+                        >
+                          {section}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="h-px bg-[#2a2a3a] my-1" />
+                    <button
+                      onClick={() => setShowMoveOptions(false)}
+                      className="w-full px-3 py-1.5 text-center text-xs text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -14,10 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Link Organizer | Organize Any URL Instantly",
+  title: "Links Overflow",
   description:
-    "An intelligent URL organizer that automatically categorizes YouTube, GitHub, LinkedIn, coding platforms, design tools, documents, and blogs using AI-powered classification.",
+    "An intelligent URL organizer that automatically categorizes your links using AI-powered classification.",
   keywords: ["link organizer", "url categorizer", "smart bookmarks", "digital heroes"],
+  icons: {
+    icon: "/logoWithoutName.jpeg",
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +33,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0f] text-gray-100">
+      <body className="min-h-full flex flex-col bg-black text-gray-100">
         <Providers>{children}</Providers>
       </body>
     </html>
