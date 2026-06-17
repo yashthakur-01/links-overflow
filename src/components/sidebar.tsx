@@ -13,6 +13,10 @@ import {
   Layers,
   LayoutGrid,
   Trash2,
+  MessageCircle,
+  HelpCircle,
+  Camera,
+  MessageSquare,
 } from "lucide-react";
 import { useAppState } from "@/app/providers";
 import type { CategoryName, LinkItem } from "@/lib/types";
@@ -65,14 +69,32 @@ const CATEGORY_CONFIG: {
     subcategories: ["Google Drive File", "Static PDF"],
   },
   {
-    name: "Blogs & Articles",
+    name: "Blogs, Articles & Others",
     icon: <BookOpen size={18} />,
     color: "text-emerald-400",
-    subcategories: ["Reading List"],
+    subcategories: ["Reading List", "Other Document"],
   },
   {
-    name: "Others",
-    icon: <Layers size={18} />,
+    name: "Instagram",
+    icon: <Camera size={18} />,
+    color: "text-pink-400",
+    subcategories: ["Post", "Reel", "Profile", "Other"],
+  },
+  {
+    name: "Discord",
+    icon: <MessageSquare size={18} />,
+    color: "text-indigo-400",
+    subcategories: ["Invite Link", "Server", "Other"],
+  },
+  {
+    name: "WhatsApp",
+    icon: <MessageCircle size={18} />,
+    color: "text-green-400",
+    subcategories: ["Chat Link", "Group", "Other"],
+  },
+  {
+    name: "No Context Links",
+    icon: <HelpCircle size={18} />,
     color: "text-gray-400",
     subcategories: ["Unclassified"],
   },

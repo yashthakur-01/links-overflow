@@ -61,9 +61,15 @@ export function useAuthSession() {
     setLinks((prev) => prev.filter((l) => l.id !== id));
   }, []);
 
+  const updateLink = useCallback((id: string, updates: Partial<LinkItem>) => {
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    );
+  }, []);
+
   const clearLinks = useCallback(() => {
     setLinks([]);
   }, []);
 
-  return { token, links, isReady, addLink, removeLink, clearLinks };
+  return { token, links, isReady, addLink, removeLink, updateLink, clearLinks };
 }

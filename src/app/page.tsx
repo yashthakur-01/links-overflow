@@ -19,7 +19,7 @@ import HeroFooter from "@/components/hero-footer";
 import type { LinkItem, FetchLinkResponse } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { links, isReady, addLink, removeLink, clearLinks } = useAuthSession();
+  const { links, isReady, addLink, removeLink, updateLink, clearLinks } = useAuthSession();
   const {
     selectedCategory,
     selectedSubcategory,
@@ -38,6 +38,15 @@ export default function DashboardPage() {
       e.preventDefault();
       const trimmed = urlInput.trim();
       if (!trimmed) return;
+
+      let checkUrl = trimmed;
+      if (!/^https?:\/\//i.test(checkUrl)) {
+        checkUrl = "https://" + checkUrl;
+      }
+      if (links.some((l) => l.url.toLowerCase() === checkUrl.toLowerCase())) {
+        showToast("This link is already in your list.", "error");
+        return;
+      }
 
       setIsLoading(true);
       try {
@@ -222,6 +231,7 @@ export default function DashboardPage() {
                 item={item}
                 index={i}
                 onRemove={removeLink}
+                onUpdate={updateLink}
               />
             ))}
           </div>

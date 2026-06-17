@@ -1,4 +1,3 @@
-// ─── Shared Types ────────────────────────────────────────────
 export type CategoryName =
   | "YouTube"
   | "LinkedIn"
@@ -6,8 +5,11 @@ export type CategoryName =
   | "Coding Platforms"
   | "Design"
   | "Documents"
-  | "Blogs & Articles"
-  | "Others";
+  | "Blogs, Articles & Others"
+  | "Instagram"
+  | "Discord"
+  | "WhatsApp"
+  | "No Context Links";
 
 export interface YouTubeMeta {
   title: string;
@@ -47,6 +49,11 @@ export interface BlogMeta {
   description: string;
 }
 
+export interface SocialMediaMeta {
+  identifier: string;
+  contentType: string;
+}
+
 export interface OtherMeta {
   title: string;
   context: string;
@@ -60,6 +67,7 @@ export type LinkMeta =
   | DesignMeta
   | DocumentMeta
   | BlogMeta
+  | SocialMediaMeta
   | OtherMeta;
 
 export interface LinkItem {

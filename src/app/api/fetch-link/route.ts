@@ -136,7 +136,8 @@ function processLinkedIn(url: string, parsedUrl: URL) {
     identifier = parts[1] || "Unknown Author";
   } else if (path.includes("/jobs/")) {
     subcategory = "Job Listing";
-    identifier = path.split("/jobs/")[1]?.split("/")[0] || "Job";
+    const parts = path.split("/").filter(Boolean);
+    identifier = parts[parts.length - 1] || "Job";
   } else {
     subcategory = "Page";
     identifier = path.replace(/^\//, "").split("/")[0] || "LinkedIn";
@@ -187,14 +188,6 @@ async function processGitHub(url: string, parsedUrl: URL) {
         $('meta[property="og:description"]').attr("content") ||
         $('meta[name="description"]').attr("content") ||
         "";
-
-      if (
-        $('meta[property="og:type"]').attr("content")?.includes("organization") ||
-        description.toLowerCase().includes("organization") ||
-        $('a[data-tab-item="org-header-repositories"]').length > 0
-      ) {
-        subcategory = "Organization";
-      }
     }
   }
 
@@ -247,7 +240,11 @@ async function processCodingPlatform(url: string, parsedUrl: URL) {
     }
   } else if (host.includes("codeforces.com")) {
     platform = "Codeforces";
-    if (pathParts[0] === "contest" || pathParts[0] === "contests") {
+    if (pathParts[0] && pathParts[0].toLowerCase() === "contestregistration") {
+      subcategory = "Contest";
+      entityName = pathParts[1] ? `Registration ${pathParts[1]}` : "Contest Registration";
+      type = "Contest";
+    } else if (pathParts[0] === "contest" || pathParts[0] === "contests") {
       subcategory = "Contest";
       entityName = pathParts[1] ? `Contest ${pathParts[1]}` : "Contests";
       type = "Contest";
@@ -266,7 +263,15 @@ async function processCodingPlatform(url: string, parsedUrl: URL) {
     }
   } else if (host.includes("codechef.com")) {
     platform = "CodeChef";
-    if (pathParts[0] === "problems" && pathParts[1]) {
+    if (pathParts.includes("course") || pathParts.includes("practice")) {
+      subcategory = "Course/Playlist";
+      entityName = pathParts[pathParts.length - 1] || "Course";
+      type = "Course";
+    } else if (pathParts.includes("skill-test")) {
+      subcategory = "Contest";
+      entityName = pathParts[pathParts.length - 1] || "Skill Test";
+      type = "Contest";
+    } else if (pathParts[0] === "problems" && pathParts[1]) {
       subcategory = "Question";
       entityName = pathParts[1].toUpperCase();
       type = "Problem";
@@ -278,10 +283,6 @@ async function processCodingPlatform(url: string, parsedUrl: URL) {
       subcategory = "Contest";
       entityName = pathParts[1] ? slugToTitle(pathParts[1]) : pathParts[0] || "Contests";
       type = "Contest";
-    } else if (pathParts[0] === "learn" || pathParts[0] === "courses") {
-      subcategory = "Course/Playlist";
-      entityName = pathParts[1] ? slugToTitle(pathParts[1]) : "Learning";
-      type = "Course";
     } else {
       subcategory = "Page";
       entityName = pathParts[0] ? slugToTitle(pathParts[0]) : "CodeChef";
@@ -385,6 +386,9 @@ function processDocument(url: string, parsedUrl: URL) {
   } else if (host.includes("drive.google.com")) {
     title = "Google Drive File";
     ext = "gdrive";
+  } else if (host.includes("colab.research.google.com")) {
+    title = "Google Colab Notebook";
+    ext = "ipynb";
   }
 
   return {
@@ -425,7 +429,7 @@ async function processBlog(url: string) {
   if (!description) description = "";
 
   return {
-    category: "Blogs & Articles" as const,
+    category: "Blogs, Articles & Others" as const,
     subcategory: "Reading List",
     meta: { title, description },
     favicon: faviconUrl(url),
@@ -436,10 +440,69 @@ async function processOther(url: string) {
   const html = await fetchHTML(url);
   const inferred = await geminiInfer(url, html);
 
+  if (
+    inferred.title === "Untitled Page" &&
+    (inferred.context.includes("fetch information") ||
+      inferred.context.includes("not configured"))
+  ) {
+    console.log(`[Pipeline] Gemini failed to infer context. Categorizing as No Context.`);
+    return {
+      category: "No Context Links" as const,
+      subcategory: "Unclassified",
+      meta: { title: "No Context", context: "" },
+      favicon: faviconUrl(url),
+    };
+  }
+
+  console.log(`[Pipeline] Gemini inferred content for URL: ${url}`);
   return {
-    category: "Others" as const,
+    category: "No Context Links" as const,
     subcategory: "Unclassified",
     meta: { title: inferred.title, context: inferred.context },
+    favicon: faviconUrl(url),
+  };
+}
+
+function processSocialMedia(url: string, parsedUrl: URL) {
+  const host = parsedUrl.hostname.replace("www.", "");
+  const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+  
+  let category: "Instagram" | "Discord" | "WhatsApp" = "Instagram";
+  let platform = "Social Media";
+  let subcategory = "Other";
+  let identifier = url;
+  let contentType = "Link";
+
+  if (host.includes("instagram.com")) {
+    category = "Instagram";
+    platform = "Instagram";
+    if (pathParts[0] === "p" || pathParts[0] === "reel") {
+      subcategory = pathParts[0] === "p" ? "Post" : "Reel";
+      identifier = `Post/Reel ${pathParts[1] || ""}`;
+      contentType = "Post";
+    } else {
+      subcategory = "Profile";
+      identifier = pathParts[0] ? `@${pathParts[0]}` : "Instagram";
+      contentType = "Profile";
+    }
+  } else if (host.includes("discord.gg") || host.includes("discord.com")) {
+    category = "Discord";
+    platform = "Discord";
+    subcategory = "Invite Link";
+    identifier = pathParts[pathParts.length - 1] || "Discord Invite";
+    contentType = "Invite Link";
+  } else if (host.includes("whatsapp.com") || host.includes("wa.me")) {
+    category = "WhatsApp";
+    platform = "WhatsApp";
+    subcategory = "Chat Link";
+    identifier = pathParts[pathParts.length - 1] || "WhatsApp Link";
+    contentType = "Chat Link";
+  }
+
+  return {
+    category,
+    subcategory,
+    meta: { platform, identifier, contentType },
     favicon: faviconUrl(url),
   };
 }
@@ -478,25 +541,41 @@ export async function POST(req: NextRequest) {
     let result;
 
     if (host.includes("youtube.com") || host.includes("youtu.be")) {
+      console.log(`[Pipeline] Rule-based routing: YouTube`);
       result = await processYouTube(url, parsedUrl);
     } else if (host.includes("linkedin.com")) {
+      console.log(`[Pipeline] Rule-based routing: LinkedIn`);
       result = processLinkedIn(url, parsedUrl);
     } else if (host === "github.com" || host === "gist.github.com") {
+      console.log(`[Pipeline] Rule-based routing: GitHub`);
       result = await processGitHub(url, parsedUrl);
     } else if (
       host.includes("leetcode.com") ||
       host.includes("codeforces.com") ||
       host.includes("codechef.com")
     ) {
+      console.log(`[Pipeline] Rule-based routing: Coding Platform`);
       result = await processCodingPlatform(url, parsedUrl);
-    } else if (host.includes("figma.com") || host.includes("canva.com")) {
+    } else if (host.includes("figma.com") || host.includes("canva.com") || host.includes("canva.link")) {
+      console.log(`[Pipeline] Rule-based routing: Design`);
       result = processDesign(url, parsedUrl);
     } else if (
       host.includes("drive.google.com") ||
       host.includes("docs.google.com") ||
+      host.includes("colab.research.google.com") ||
       parsedUrl.pathname.toLowerCase().endsWith(".pdf")
     ) {
+      console.log(`[Pipeline] Rule-based routing: Documents`);
       result = processDocument(url, parsedUrl);
+    } else if (
+      host.includes("instagram.com") ||
+      host.includes("discord.gg") ||
+      host.includes("discord.com") ||
+      host.includes("whatsapp.com") ||
+      host.includes("wa.me")
+    ) {
+      console.log(`[Pipeline] Rule-based routing: Social Media`);
+      result = processSocialMedia(url, parsedUrl);
     } else if (
       host.includes("medium.com") ||
       host.includes("substack.com") ||
@@ -508,8 +587,10 @@ export async function POST(req: NextRequest) {
       host.includes("telegraph") ||
       host.includes("mirror.xyz")
     ) {
+      console.log(`[Pipeline] Rule-based routing: Blog`);
       result = await processBlog(url);
     } else {
+      console.log(`[Pipeline] Checking fallback...`);
       // General fallback — try scraping for blog-like content first
       const html = await fetchHTML(url);
       if (html) {
@@ -524,9 +605,10 @@ export async function POST(req: NextRequest) {
           "";
 
         if (title || desc) {
+          console.log(`[Pipeline] Scraped blog/article data from fallback`);
           result = {
-            category: "Blogs & Articles" as const,
-            subcategory: "Reading List",
+            category: "Blogs, Articles & Others" as const,
+            subcategory: "Other Document",
             meta: { title: title || "Untitled", description: desc || "" },
             favicon: faviconUrl(url),
           };
