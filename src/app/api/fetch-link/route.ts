@@ -561,6 +561,28 @@ export async function POST(req: NextRequest) {
 
     const host = parsedUrl.hostname.replace("www.", "").toLowerCase();
 
+    // ── Reachability Check ──────────────────────────────────
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const ping = await fetch(url, {
+        headers: { "User-Agent": BROWSER_UA },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (ping.status === 404) {
+        return NextResponse.json(
+          { success: false, error: "link is not correct" },
+          { status: 400 }
+        );
+      }
+    } catch (err) {
+      return NextResponse.json(
+        { success: false, error: "link is not correct" },
+        { status: 400 }
+      );
+    }
+
     // ── Rule-based routing ──────────────────────────────────
     let result;
 

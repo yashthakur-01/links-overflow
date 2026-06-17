@@ -18,9 +18,6 @@ export const metadata: Metadata = {
   description:
     "An intelligent URL organizer that automatically categorizes your links using AI-powered classification.",
   keywords: ["link organizer", "url categorizer", "smart bookmarks", "digital heroes"],
-  icons: {
-    icon: "/logoWithoutName.jpeg",
-  },
 };
 
 export default function RootLayout({
