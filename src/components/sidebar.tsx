@@ -32,6 +32,7 @@ interface SidebarProps {
   customSections: string[];
   onAddCustomSection: (section: string) => void;
   onRemoveCustomSection: (section: string) => void;
+  onMobileItemSelect?: () => void;
 }
 
 const CATEGORY_CONFIG: {
@@ -114,7 +115,7 @@ const CATEGORY_CONFIG: {
   },
 ];
 
-export default function Sidebar({ links, onClearAll, customSections, onAddCustomSection, onRemoveCustomSection }: SidebarProps) {
+export default function Sidebar({ links, onClearAll, customSections, onAddCustomSection, onRemoveCustomSection, onMobileItemSelect }: SidebarProps) {
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [sectionToDelete, setSectionToDelete] = useState<string | null>(null);
@@ -246,7 +247,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
         <div className="relative group/tooltip">
           <button
             id="filter-all"
-            onClick={() => setSelectedCategory("All")}
+            onClick={() => { setSelectedCategory("All"); onMobileItemSelect?.(); }}
             className={`flex items-center w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               isSidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"
             } ${
@@ -303,7 +304,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
           return (
             <div key={section} className="relative group/tooltip">
               <button
-                onClick={() => setSelectedCategory(section)}
+                onClick={() => { setSelectedCategory(section); onMobileItemSelect?.(); }}
                 className={`flex items-center w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   isSidebarCollapsed ? "justify-center px-0" : "gap-3 px-3 pr-8"
                 } ${
@@ -330,7 +331,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
                     e.stopPropagation();
                     setSectionToDelete(section);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover/tooltip:opacity-100 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-100 lg:opacity-0 group-hover/tooltip:opacity-100 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all cursor-pointer"
                   title="Delete section"
                 >
                   <Trash2 size={14} />
@@ -356,7 +357,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
             <div key={cat.name} className="relative group/tooltip">
               <button
                 id={`filter-${cat.name.toLowerCase().replace(/[^a-z]/g, "-")}`}
-                onClick={() => setSelectedCategory(cat.name)}
+                onClick={() => { setSelectedCategory(cat.name); onMobileItemSelect?.(); }}
                 className={`flex items-center w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                   isSidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"
                 } ${
@@ -384,7 +385,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
               {isActive && activeConfig && !isSidebarCollapsed && (
                 <div className="flex flex-col gap-1 px-3 pt-2 pb-1 animate-fade-in-up">
                   <button
-                    onClick={() => setSelectedSubcategory(null)}
+                    onClick={() => { setSelectedSubcategory(null); onMobileItemSelect?.(); }}
                     className={`text-left px-4 py-2 rounded-lg text-sm transition-all cursor-pointer ${
                       selectedSubcategory === null
                         ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white font-semibold shadow-sm border-l-2 border-pink-500"
@@ -396,7 +397,7 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
                   {activeConfig.subcategories.map((sub) => (
                     <button
                       key={sub}
-                      onClick={() => setSelectedSubcategory(sub)}
+                      onClick={() => { setSelectedSubcategory(sub); onMobileItemSelect?.(); }}
                       className={`text-left px-4 py-2 rounded-lg text-sm transition-all cursor-pointer ${
                         selectedSubcategory === sub
                           ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-white font-semibold shadow-sm border-l-2 border-pink-500"

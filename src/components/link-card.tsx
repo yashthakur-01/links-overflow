@@ -468,7 +468,7 @@ export default function LinkCard({ item, index, onRemove, onUpdate, customSectio
           </span>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={handleCopy}
             className="p-1.5 rounded-lg hover:bg-[#2a2a3a] text-gray-500 hover:text-gray-200 transition-colors cursor-pointer"

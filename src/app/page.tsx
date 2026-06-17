@@ -148,6 +148,7 @@ export default function DashboardPage() {
           customSections={customSections} 
           onAddCustomSection={addCustomSection}
           onRemoveCustomSection={removeCustomSection} 
+          onMobileItemSelect={() => setSidebarOpen(false)}
         />
       </div>
 
