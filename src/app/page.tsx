@@ -1,65 +1,270 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useMemo, useCallback } from "react";
+import Fuse from "fuse.js";
+import {
+  Link2,
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  X,
+  Menu,
+  ChevronRight,
+} from "lucide-react";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAppState } from "@/app/providers";
+import Sidebar from "@/components/sidebar";
+import LinkCard from "@/components/link-card";
+import HeroFooter from "@/components/hero-footer";
+import type { LinkItem, FetchLinkResponse } from "@/lib/types";
+
+export default function DashboardPage() {
+  const { links, isReady, addLink, removeLink, clearLinks } = useAuthSession();
+  const {
+    selectedCategory,
+    selectedSubcategory,
+    searchQuery,
+    toast,
+    showToast,
+  } = useAppState();
+
+  const [urlInput, setUrlInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // ── Submit URL ─────────────────────────────────────────────
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = urlInput.trim();
+      if (!trimmed) return;
+
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/fetch-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: trimmed }),
+        });
+        const json: FetchLinkResponse = await res.json();
+
+        if (json.success && json.data) {
+          const newItem: LinkItem = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            ...json.data,
+          };
+          addLink(newItem);
+          setUrlInput("");
+          showToast("Link categorized successfully!", "success");
+        } else {
+          showToast(json.error || "Failed to process link.", "error");
+        }
+      } catch {
+        showToast("Network error. Please try again.", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [urlInput, addLink, showToast]
+  );
+
+  // ── Filtering ──────────────────────────────────────────────
+  const filteredLinks = useMemo(() => {
+    let result = links;
+
+    if (selectedCategory !== "All") {
+      result = result.filter((l) => l.category === selectedCategory);
+    }
+
+    if (selectedSubcategory) {
+      result = result.filter((l) => l.subcategory === selectedSubcategory);
+    }
+
+    if (searchQuery.trim()) {
+      const fuse = new Fuse(result, {
+        keys: [
+          "url",
+          "category",
+          "subcategory",
+          "meta.title",
+          "meta.description",
+          "meta.channel",
+          "meta.username",
+          "meta.repoName",
+          "meta.entityName",
+          "meta.platform",
+          "meta.fileName",
+          "meta.identifier",
+          "meta.context",
+        ],
+        threshold: 0.35,
+        ignoreLocation: true,
+      });
+      result = fuse.search(searchQuery).map((r) => r.item);
+    }
+
+    return result;
+  }, [links, selectedCategory, selectedSubcategory, searchQuery]);
+
+  // ── Loading state ──────────────────────────────────────────
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={32} className="animate-spin text-violet-400" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex min-h-screen">
+      {/* ── Mobile sidebar overlay ──────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+      )}
+
+      {/* ── Sidebar ─────────────────────────────────────────── */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0d0d14] border-r border-[#1e1e2e] transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar links={links} onClearAll={clearLinks} />
+      </div>
+
+      {/* ── Main content ────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-6">
+        {/* Mobile header */}
+        <div className="flex items-center gap-3 mb-6 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-xl bg-[#12121a] border border-[#2a2a3a] text-gray-400 hover:text-gray-100 transition-colors cursor-pointer"
+          >
+            <Menu size={20} />
+          </button>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-violet-400 to-indigo-300 bg-clip-text text-transparent">
+            Smart Link Organizer
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* ── URL Input Form ────────────────────────────────── */}
+        <div className="max-w-3xl mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={18} className="text-violet-400" />
+            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+              Add a Link
+            </h2>
+          </div>
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <div className="relative flex-1">
+              <Link2
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600"
+              />
+              <input
+                id="url-input"
+                type="text"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="Paste any URL — YouTube, GitHub, LeetCode, Figma…"
+                disabled={isLoading}
+                className="w-full pl-11 pr-4 py-3.5 bg-[#12121a] border border-[#2a2a3a] rounded-2xl text-sm text-gray-200 placeholder:text-gray-600 outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 transition-all disabled:opacity-50"
+              />
+            </div>
+            <button
+              id="organize-btn"
+              type="submit"
+              disabled={isLoading || !urlInput.trim()}
+              className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold hover:from-violet-500 hover:to-indigo-500 hover:shadow-[0_0_24px_rgba(124,92,252,0.25)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all duration-300 cursor-pointer"
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <ChevronRight size={18} />
+              )}
+              <span className="hidden sm:inline">
+                {isLoading ? "Processing…" : "Organize"}
+              </span>
+            </button>
+          </form>
         </div>
+
+        {/* ── Active filter breadcrumb ──────────────────────── */}
+        {(selectedCategory !== "All" || searchQuery) && (
+          <div className="flex items-center gap-2 mb-5 flex-wrap">
+            <span className="text-xs text-gray-600">Showing:</span>
+            {selectedCategory !== "All" && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                {selectedCategory}
+                {selectedSubcategory && ` → ${selectedSubcategory}`}
+              </span>
+            )}
+            {searchQuery && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                &quot;{searchQuery}&quot;
+              </span>
+            )}
+            <span className="text-xs text-gray-600">
+              — {filteredLinks.length} result{filteredLinks.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
+        {/* ── Link Grid ─────────────────────────────────────── */}
+        {filteredLinks.length > 0 ? (
+          <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {filteredLinks.map((item, i) => (
+              <LinkCard
+                key={item.id}
+                item={item}
+                index={i}
+                onRemove={removeLink}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#12121a] border border-[#2a2a3a] flex items-center justify-center mb-4">
+              <Link2 size={28} className="text-gray-700" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-400 mb-1">
+              {links.length === 0 ? "No links yet" : "No matching links"}
+            </h3>
+            <p className="text-sm text-gray-600 max-w-sm">
+              {links.length === 0
+                ? "Paste a URL above to get started. We'll automatically categorize it for you."
+                : "Try adjusting your filters or search query."}
+            </p>
+          </div>
+        )}
+
+        {/* ── Footer ────────────────────────────────────────── */}
+        <HeroFooter />
       </main>
+
+      {/* ── Toast Notifications ─────────────────────────────── */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border animate-slide-in ${
+            toast.type === "success"
+              ? "bg-emerald-950/90 border-emerald-500/30 text-emerald-300"
+              : "bg-red-950/90 border-red-500/30 text-red-300"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <Sparkles size={16} />
+          ) : (
+            <AlertCircle size={16} />
+          )}
+          <span className="text-sm font-medium">{toast.message}</span>
+          <button className="ml-1 text-gray-500 hover:text-gray-200 transition-colors cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
