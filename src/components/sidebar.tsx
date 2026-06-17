@@ -202,16 +202,8 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
       )}
 
     <aside className="relative flex flex-col h-full w-full bg-[#0d0d14] group/sidebar">
-      {/* Toggle button */}
-      <button
-        onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-        className="absolute right-3 top-7 z-[60] p-1 rounded-full bg-[#1a1a26] border border-[#2a2a3a] text-gray-400 hover:text-white transition-all shadow-lg opacity-0 group-hover/sidebar:opacity-100 cursor-pointer"
-      >
-        {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
-
       {/* Brand */}
-      <div className={`px-5 pt-6 pb-4 flex items-center ${isSidebarCollapsed ? "justify-center" : ""}`}>
+      <div className={`px-5 pt-6 pb-2 flex items-center ${isSidebarCollapsed ? "justify-center" : ""}`}>
         {isSidebarCollapsed ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src="/logoWithoutName.jpeg" alt="Logo" className="w-12 h-12 object-contain" />
@@ -219,6 +211,16 @@ export default function Sidebar({ links, onClearAll, customSections, onAddCustom
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src="/logoWithName.png" alt="Links Overflow" className="h-14 w-full object-contain object-left" />
         )}
+      </div>
+
+      {/* Toggle button */}
+      <div className={`flex pb-4 ${isSidebarCollapsed ? "justify-center" : "justify-end px-4"}`}>
+        <button
+          onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+          className="p-1 rounded-full bg-[#1a1a26] border border-[#2a2a3a] text-gray-400 hover:text-white transition-all shadow-lg cursor-pointer"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
 
       {/* Search */}
